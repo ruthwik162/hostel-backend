@@ -1,12 +1,25 @@
 import express from "express";
-import authUser from "../middleware/authUser.js";
-import { isAuth, login, logout, register } from "../Controllers/userController.js";
+import {
+  register,
+  login,
+  isAuth,
+  logout,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+} from "../Controllers/userController.js";
 
-const userRouter = express.Router();
+const router = express.Router();
 
-userRouter.post("/register", register);
-userRouter.post("/login", login)
-userRouter.get("/is-auth",authUser, isAuth);
-userRouter.get("/logout",authUser, logout);
+// Auth
+router.post("/register", register);
+router.post("/login", login);
+router.get("/is-auth", isAuth);
+router.get("/logout", logout);
 
-export default userRouter;
+// Users
+router.get("/all", getAllUsers); // frontend: axios.get('/user/all')
+router.put("/register/:id", updateUser); // frontend: axios.put('/user/register/:id')
+router.delete("/register/:id", deleteUser); // frontend: axios.delete('/user/register/:id')
+
+export default router;
