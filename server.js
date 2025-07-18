@@ -21,7 +21,7 @@ app.use(cors({origin: allowedOrigins,Credentials:true}))
 
 app.get("/",(req,res)=>res.send("API is Working"));
 
-app.use("/api/user", userRouter);
+app.use("/user", userRouter);
 
 
 
