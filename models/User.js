@@ -7,6 +7,11 @@ const userSchema = new mongoose.Schema({
   mobile: String,
   gender: String,
   role: { type: String, default: "user" },
+  roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room' },
+  occupant: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  plan: { type: String, ref: 'Plan' },
+  blockId: { type: mongoose.Schema.Types.ObjectId, ref: 'Block' },
+
 });
 
 const User = mongoose.model('User', userSchema);

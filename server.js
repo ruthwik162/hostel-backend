@@ -6,7 +6,9 @@ import 'dotenv/config';
 import userRouter from './routes/userRoutes.js';
 import orderRoutes from './routes/orderRoutes.js'
 import planRoutes from './routes/planRoutes.js'
-
+import roomRoutes from './routes/roomRoutes.js';
+import blockRoutes from './routes/blockRoutes.js';
+import contactUsRoutes from './routes/contactUsRoutes.js';
 
 const app = express();
 const port = process.env.PORT ||8087;
@@ -41,6 +43,9 @@ app.get("/",(req,res)=>res.send("API is Working"));
 app.use("/user", userRouter);
 app.use('/user', orderRoutes);
 app.use('/user', planRoutes);
+app.use('/user/rooms', roomRoutes);
+app.use('/user/blocks', blockRoutes);
+app.use('/user', contactUsRoutes);
 
 
 

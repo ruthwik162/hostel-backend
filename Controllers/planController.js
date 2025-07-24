@@ -21,35 +21,48 @@ export const getPlanById = async (req, res) => {
 };
 
 
-// POST: Create a single plan (with optional custom _id)
-export const createPlan = async (req, res) => {
-  const { id, name, description, features, image, price_monthly, price_yearly } = req.body;
 
-  // Basic validation
-  if (!name || !description || !features || !image || !price_monthly || !price_yearly) {
-    return res.status(400).json({ message: "All fields are required." });
+
+export const createPlan = async (req, res) => {
+  const plansArray = req.body;
+
+  if (!Array.isArray(plansArray) || plansArray.length === 0) {
+    return res.status(400).json({ message: "Request body must be a non-empty array of plans." });
   }
 
-  const newPlanData = {
-  _id: id,
-  name,
-  description,
-  features,
-  image,
-  price_monthly,
-  price_yearly
-  };
+  // Validate each plan object
+  const invalidPlans = plansArray.filter(plan =>
+    !plan.id || !plan.name || !plan.description || !plan.features ||
+    !plan.image || !plan.price_monthly || !plan.price_yearly
+  );
 
-  // Optional: Add custom _id if provided
-  if (id) {
-    newPlanData._id = id;
+  if (invalidPlans.length > 0) {
+    return res.status(400).json({ message: "One or more plans are missing required fields." });
   }
 
   try {
-    const newPlan = new Plan(newPlanData);
-    const savedPlan = await newPlan.save();
-    res.status(201).json(savedPlan);
+    // Convert each plan into correct format (_id instead of id)
+    const formattedPlans = plansArray.map(plan => ({
+      _id: plan.id, // allow string-based custom _id
+      name: plan.name,
+      description: plan.description,
+      features: plan.features,
+      image: plan.image,
+      price_monthly: plan.price_monthly,
+      price_yearly: plan.price_yearly
+    }));
+
+    const insertedPlans = await Plan.insertMany(formattedPlans, { ordered: false });
+
+    res.status(201).json({
+      message: "✅ Multiple plans inserted",
+      plans: insertedPlans
+    });
   } catch (err) {
-    res.status(400).json({ message: "Failed to save plan", error: err.message });
+    res.status(500).json({
+      message: "Failed to insert plans",
+      error: err.message
+    });
   }
 };
+

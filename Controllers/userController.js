@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { SaveOrder } from "../models/SaveOrder.js";
 // Optional: add email sending utility (e.g., nodemailer)
 import nodemailer from "nodemailer";
 
@@ -146,19 +147,42 @@ export const logout = async (req, res) => {
 
 
 // GET ALL USERS
+
+
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
-    const formattedUsers = users.map((user) => ({
+    const users = await User.find();
+
+    for (const user of users) {
+      const order = await SaveOrder.findOne({ userId: user._id });
+
+      if (order) {
+        const updateFields = {};
+
+        if (!user.roomId && order.roomId) updateFields.roomId = order.roomId;
+        if (!user.plan && order.planId) updateFields.plan = order.planId;
+        if (!user.blockId && order.blockId) updateFields.blockId = order.blockId;
+
+        if (Object.keys(updateFields).length > 0) {
+          await User.findByIdAndUpdate(user._id, updateFields);
+        }
+      }
+    }
+
+    const updatedUsers = await User.find().select("-password");
+
+    const formattedUsers = updatedUsers.map((user) => ({
       ...user._doc,
-      id: user._id.toString(), // match frontend expectations
+      id: user._id.toString(),
     }));
+
     return res.status(200).json(formattedUsers);
   } catch (error) {
     console.error("Get Users Error:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // UPDATE USER BY ID
 export const updateUser = async (req, res) => {
