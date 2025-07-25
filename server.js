@@ -17,7 +17,8 @@ await connectDB()
 
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://localhost:5173/malla-reddy-university'
+  'http://localhost:5173/malla-reddy-university',
+  'https://malla-reddy-university.vercel.app'
 ];
 
 app.use(cors({
