@@ -6,6 +6,7 @@ import { Block } from '../models/Block.js';
 import User from '../models/User.js';
 
 
+
 export const createOrderAndAllocateRoom = async (req, res) => {
   try {
     let { name, email, mobile, address, gender, planId, paymentId, totalAmount } = req.body;
@@ -239,5 +240,24 @@ export const getOrdersWithUsersEmail = async (req, res) => {
   } catch (err) {
     console.error("❌ Error fetching orders by email:", err);
     res.status(500).json({ message: 'Failed to fetch orders', error: err.message });
+  }
+};
+
+
+export const deleteUserAndCleanup = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    const order = await SaveOrder.findOneAndDelete({ email });
+
+    if (!order) {
+      return res.status(404).json({ message: "SaveOrder not found" });
+    }
+
+    res.status(200).json({ message: "User, order, room, and block cleaned up automatically." });
+
+  } catch (err) {
+    console.error("Error deleting user and cleanup:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
