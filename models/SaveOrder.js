@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import { Room } from "./Room.js";
-import User from "./User.js";
 import { Block } from "./Block.js";
-
 
 const saveOrderSchema = new mongoose.Schema({
   name: String,
@@ -19,36 +17,36 @@ const saveOrderSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// ✅ Auto-cleanup middleware when a SaveOrder is deleted
-saveOrderSchema.post('findOneAndDelete', async function (doc) {
-  if (!doc) return;
+// ✅ Hook that runs after a SaveOrder is deleted
+saveOrderSchema.post("findOneAndDelete", async function (doc) {
+  if (doc) {
+    try {
+      const user = await User.findById(doc.userId);
+      const room = await Room.findById(doc.roomId);
+      const block = await Block.findById(doc.blockId);
 
-  try {
-    // Find the linked user
-    const user = await User.findById(doc.userId);
-    if (!user) return;
+      // ❌ Remove from Room
+      if (room && user) {
+        room.users = room.users.filter(id => id.toString() !== user._id.toString());
+        room.occupied = room.users.length >= room.capacity;
+        await room.save();
+      }
 
-    // Find and update Room
-    const room = await Room.findById(user.roomId);
-    if (room) {
-      room.users = room.users.filter(u => u.toString() !== user._id.toString());
-      if (room.users.length < room.capacity) room.occupied = false;
-      await room.save();
+      // ❌ Remove from Block
+      if (block && user) {
+        block.users = block.users.filter(id => id.toString() !== user._id.toString());
+        await block.save();
+      }
+
+      // ❌ Delete User
+      if (user) {
+        await user.deleteOne();
+      }
+
+      console.log("✅ Cleanup completed for deleted SaveOrder:", doc.email);
+    } catch (err) {
+      console.error("❌ Error during post-delete cleanup:", err);
     }
-
-    // Find and update Block
-    const block = await Block.findById(doc.blockId);
-    if (block) {
-      block.users = block.users.filter(u => u.toString() !== user._id.toString());
-      await block.save();
-    }
-
-    // Delete the user itself
-    await user.deleteOne();
-
-    console.log(`✅ Cleaned up user ${user.email} from Room and Block after SaveOrder deletion.`);
-  } catch (err) {
-    console.error("❌ Error during SaveOrder cleanup:", err.message);
   }
 });
 
