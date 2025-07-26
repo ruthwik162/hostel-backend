@@ -1,5 +1,5 @@
 import express from 'express';
-import { createBlock, getBlock, getBlockWithRoomDetails } from '../Controllers/blockController.js';
+import { createBlock, getBlock, getBlockWithRoomDetails, getUsersInRoom, getUsersInRoomByRoomNumber } from '../Controllers/blockController.js';
 
 const router = express.Router();
 
@@ -7,5 +7,8 @@ const router = express.Router();
 router.post('/', createBlock);
 router.get('/:blockId', getBlock);
 router.get('/room-details/:blockId', getBlockWithRoomDetails);
+router.get('/user/blocks/:blockId/:roomId', getUsersInRoom);
+router.get("/:blockId/:roomNumber", getUsersInRoomByRoomNumber);
+
 
 export default router;
