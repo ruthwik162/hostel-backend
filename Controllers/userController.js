@@ -112,6 +112,7 @@ export const login = async (req, res) => {
 };
 
 
+
 // Check Auth
 export const isAuth = async (req, res) => {
   try {
@@ -228,4 +229,18 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+export const getUserById = async (req, res) => {
+  const { id } = req.params;
 
+  try {
+    const user = await User.findById(id).select("-password"); // exclude password
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
