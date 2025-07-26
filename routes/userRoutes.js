@@ -9,13 +9,14 @@ import {
   deleteUser,
   getUserById,
 } from "../Controllers/userController.js";
+import authUser from "../middleware/authUser.js";
 
 const router = express.Router();
 
 // Auth
 router.post("/register", register);
 router.post("/login", login);
-router.get("/is-auth", isAuth);
+router.get("/is-auth",authUser, isAuth);
 router.get("/logout", logout);
 
 // Users
