@@ -7,6 +7,7 @@ import {
   getAllUsers,
   updateUser,
   deleteUser,
+  getUserById,
 } from "../Controllers/userController.js";
 
 const router = express.Router();
@@ -21,5 +22,6 @@ router.get("/logout", logout);
 router.get("/all", getAllUsers); // frontend: axios.get('/user/all')
 router.put("/register/:id", updateUser); // frontend: axios.put('/user/register/:id')
 router.delete("/register/:id", deleteUser); // frontend: axios.delete('/user/register/:id')
+router.get("/register/:id", getUserById);
 
 export default router;
