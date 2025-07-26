@@ -179,6 +179,8 @@ export const createOrderAndAllocateRoom = async (req, res) => {
 
 
 
+
+
 export const getOrdersWithUsers = async (req, res) => {
   try {
     const orders = await SaveOrder.find()
@@ -235,18 +237,23 @@ export const getOrdersWithUsersEmail = async (req, res) => {
     const { email } = req.params;
 
     const orders = await SaveOrder.find({ email })
-      .populate('roomId')
-      .populate('blockId')
-      .populate('userId');
+      .populate({
+        path: 'roomId',
+        select: 'roomNumber users plan gender',
+      })
+      .populate({
+        path: 'blockId',
+        select: 'blockId gender'
+      });
 
-    if (orders.length === 0) {
-      return res.status(404).json({ message: `No orders found for email: ${email}` });
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found for this email' });
     }
 
-    const formattedOrders = orders.map(order => {
-      const bedId = order.roomId?.users?.findIndex(
-        uid => uid.toString() === order.userId?._id.toString()
-      ) + 1;
+    const formatted = orders.map(order => {
+      const room = order.roomId;
+      const block = order.blockId;
+      const bedId = room?.users?.findIndex(u => u.toString() === order.userId.toString()) + 1 || null;
 
       return {
         orderId: order._id,
@@ -258,14 +265,14 @@ export const getOrdersWithUsersEmail = async (req, res) => {
         planId: order.planId,
         paymentId: order.paymentId,
         totalAmount: order.totalAmount,
-        bedId: bedId || null,
+        bedId,
         room: {
-          id: order.roomId?._id,
-          number: order.roomId?.roomNumber
+          id: room?._id,
+          number: room?.roomNumber
         },
         block: {
-          id: order.blockId?._id,
-          name: order.blockId?.blockId
+          id: block?._id,
+          name: block?.blockId
         },
         createdAt: order.createdAt
       };
@@ -273,12 +280,12 @@ export const getOrdersWithUsersEmail = async (req, res) => {
 
     res.status(200).json({
       message: `Orders for ${email} fetched successfully`,
-      orders: formattedOrders
+      orders: formatted
     });
 
   } catch (err) {
-    console.error("❌ Error fetching orders by email:", err);
-    res.status(500).json({ message: 'Failed to fetch orders', error: err.message });
+    console.error('Error fetching orders:', err);
+    res.status(500).json({ message: 'Internal server error', error: err.message });
   }
 };
 

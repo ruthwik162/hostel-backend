@@ -10,12 +10,12 @@ export const register = async (req, res) => {
     const { username, email, password, mobile, gender, role } = req.body;
 
     if (!username || !email || !password || !mobile || !gender || !role) {
-      return res.json({ success: false, message: "Missing Details" });
+      return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.json({ success: false, message: "User already exists!" });
+      return res.status(409).json({ success: false, message: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -29,18 +29,16 @@ export const register = async (req, res) => {
       role,
     });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "365d", // 🔒 Token valid for 1 year
-    });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "365d" });
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 🕒 1 year
+      maxAge: 365 * 24 * 60 * 60 * 1000,
     });
 
-    // Optional: Send welcome email
+    // Send welcome email
     try {
       const transporter = nodemailer.createTransport({
         service: "gmail",
@@ -57,10 +55,10 @@ export const register = async (req, res) => {
         html: `<p>Hello ${user.username},</p><p>Welcome to Mallareddy University. Your account was successfully created.</p>`,
       });
     } catch (emailError) {
-      console.error("Email send error:", emailError.message);
+      console.error("Email error:", emailError.message);
     }
 
-    return res.json({
+    return res.status(201).json({
       success: true,
       user: {
         id: user._id,
@@ -72,8 +70,8 @@ export const register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error.message);
-    return res.json({ success: false, message: error.message });
+    console.error("Register Error:", error.message);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -82,15 +80,21 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user || !user.password) {
+      return res.status(404).json({ message: "User not found or password missing" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "365d", // 🔒 Token valid for 1 year
-    });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "365d" });
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -99,7 +103,7 @@ export const login = async (req, res) => {
       maxAge: 365 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       user: {
         _id: user._id,
         username: user.username,
@@ -110,7 +114,7 @@ export const login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Login error:", err);
+    console.error("Login Error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -125,7 +129,7 @@ export const isAuth = async (req, res) => {
 
     return res.status(200).json({ success: true, user });
   } catch (error) {
-    console.log(error.message);
+    console.error("Auth Check Error:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -138,14 +142,14 @@ export const logout = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
     });
-    return res.json({ success: true, message: "Successfully Logged Out" });
+    return res.json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    console.log(error.message);
-    res.json({ success: false, message: error.message });
+    console.error("Logout Error:", error.message);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ✅ GET USER BY ID (from /register/:id route)
+// ✅ GET USER BY ID
 export const getUserById = async (req, res) => {
   const { id } = req.params;
 
@@ -155,14 +159,14 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.status(200).json({ success: true, user });
+    return res.status(200).json({ success: true, user });
   } catch (error) {
-    console.error("Get user by ID error:", error.message);
+    console.error("Get User By ID Error:", error.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ✅ GET ALL USERS
+// ✅ GET ALL USERS & AUTO UPDATE FIELDS FROM SAVEORDER
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -185,19 +189,19 @@ export const getAllUsers = async (req, res) => {
 
     const updatedUsers = await User.find().select("-password");
 
-    const formattedUsers = updatedUsers.map((user) => ({
+    const formattedUsers = updatedUsers.map(user => ({
       ...user._doc,
       id: user._id.toString(),
     }));
 
     return res.status(200).json(formattedUsers);
   } catch (error) {
-    console.error("Get Users Error:", error.message);
+    console.error("Get All Users Error:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ UPDATE USER BY ID
+// ✅ UPDATE USER
 export const updateUser = async (req, res) => {
   const { id } = req.params;
   const { username, email, mobile, gender } = req.body;
@@ -226,7 +230,7 @@ export const updateUser = async (req, res) => {
   }
 };
 
-// ✅ DELETE USER BY ID
+// ✅ DELETE USER
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
 

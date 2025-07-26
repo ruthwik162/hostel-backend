@@ -8,10 +8,9 @@ const blockSchema = new mongoose.Schema({
   totalRooms: Number,
   rooms: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Room' }],
   plans: [{ type: String }],
-  users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   slots: [{ type: String }],
 
-  // ✅ Add this field to store users in block
+  // ✅ Final: Only this users array (rename to occupants if preferred)
   users: [{
     name: String,
     email: String,
@@ -20,5 +19,6 @@ const blockSchema = new mongoose.Schema({
     roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room' }
   }]
 });
+
 
 export const Block = mongoose.model('Block', blockSchema);
