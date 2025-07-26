@@ -1,15 +1,12 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import { SaveOrder } from "../models/SaveOrder.js";
-// Optional: add email sending utility (e.g., nodemailer)
 import nodemailer from "nodemailer";
 
 // REGISTER USER
 export const register = async (req, res) => {
   try {
     const { username, email, password, mobile, gender, role } = req.body;
-
     if (!username || !email || !password || !mobile || !gender || !role) {
       return res.json({ success: false, message: "Missing Details" });
     }
@@ -20,7 +17,6 @@ export const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = await User.create({
       username,
       email,
@@ -30,15 +26,19 @@ export const register = async (req, res) => {
       role,
     });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    // Issue JWT valid for 1 day
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
+    // Set cookie to expire in 1 day
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
     // Optional: Send welcome email
@@ -55,7 +55,7 @@ export const register = async (req, res) => {
         from: `"Mallareddy University" <${process.env.EMAIL_USER}>`,
         to: user.email,
         subject: "Welcome to Mallareddy University!",
-        html: `<p>Hello ${user.username},</p><p>Welcome to Mallareddy University. Your account was successfully created.</p>`,
+        html: `<p>Hello ${user.username},</p><p>Your account was successfully created.</p>`,
       });
     } catch (emailError) {
       console.error("Email send error:", emailError.message);
@@ -81,24 +81,29 @@ export const register = async (req, res) => {
 // LOGIN USER
 export const login = async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const user = await User.findOne({ email });
-
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    // Optional: create a token and set cookie (if needed)
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    // Issue JWT valid for 1 day
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // Set cookie to expire in 1 day
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // set to true in production with HTTPS
-      sameSite: "Lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "Lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
 
-    // ✅ Return user inside an object
+    // Return user data
     res.status(200).json({
       user: {
         _id: user._id,
@@ -114,6 +119,7 @@ export const login = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Check Auth
 export const isAuth = async (req, res) => {
